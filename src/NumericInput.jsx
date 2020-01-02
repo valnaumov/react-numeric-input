@@ -70,6 +70,7 @@ type NumericInputState = {
     btnUpActive   ?: boolean;
     value         ?: number | null;
     stringValue   ?: string;
+    allowString   ?: boolean;
 }
 /*eslint-enable*/
 
@@ -105,6 +106,7 @@ class NumericInput extends Component
         value        : PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
         defaultValue : PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
         strict       : PropTypes.bool,
+        allowString  : PropTypes.bool,
         componentClass: PropTypes.oneOfType([PropTypes.func, PropTypes.string]),
         mobile(props, propName) {
             let prop = props[propName]
@@ -130,6 +132,7 @@ class NumericInput extends Component
         format        : null,
         mobile        : 'auto',
         strict        : false,
+        allowString   : false,
         componentClass: "input",
         style         : {}
     };
@@ -600,7 +603,7 @@ class NumericInput extends Component
      * precision (no fixed precision here because the return value is float, not
      * string).
      */
-    _toNumber(x: any): number
+    _toNumber(x: any): any
     {
         let n = parseFloat(x);
         if (isNaN(n) || !isFinite(n)) {
@@ -641,6 +644,10 @@ class NumericInput extends Component
      */
     _format(n: number): string
     {
+        if (access(this.props, "allowString", NumericInput.defaultProps.allowString, this)) {
+            return n;
+        }
+
         let _n = this._toNumber(n);
         let precision = access(this.props, "precision", null, this);
         if (precision !== null) {
@@ -851,6 +858,7 @@ class NumericInput extends Component
             // These are ignored in rendering
             step, min, max, precision, parse, format, mobile, snap, componentClass,
             value, type, style, defaultValue, onInvalid, onValid, strict, noStyle,
+            allowString,
 
             // The rest are passed to the input
             ...rest
@@ -966,6 +974,10 @@ class NumericInput extends Component
             attrs.input.value = stringValue;
         }
 
+        else if (allowString) {
+            attrs.input.value = stringValue;
+        }
+
         // number
         else if (state.value || state.value === 0) {
             attrs.input.value = this._format(state.value);
@@ -1068,7 +1080,17 @@ class NumericInput extends Component
             Object.assign(attrs.input, {
                 onChange : e => {
                     const original = e.target.value;
-                    let val = this._parse(original)
+
+                    let allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this);
+                    if (allowString) {
+                        this.setState({
+                            value: original,
+                            stringValue: original
+                        });
+                        return;
+                    }
+
+                    let val = this._parse(original);
                     if (isNaN(val)) {
                         val = null
                     }
@@ -1089,7 +1111,14 @@ class NumericInput extends Component
                 onFocus: (...args) => {
                     args[0].persist();
                     this._inputFocus = true;
-                    const val = this._parse(args[0].target.value);
+
+                    let val = args[0].target.value;
+
+                    let allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this);
+                    if (!allowString) {
+                        val = this._parse(args[0].target.value)
+                    }
+
                     this.setState({
                         value: val,
                         stringValue: val || val === 0 ? val + "" : ""
@@ -1102,7 +1131,14 @@ class NumericInput extends Component
                     this._isStrict = true
                     args[0].persist();
                     this._inputFocus = false;
-                    const val = this._parse(args[0].target.value);
+
+                    let val = args[0].target.value;
+
+                    let allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this);
+                    if (!allowString) {
+                        val = this._parse(args[0].target.value)
+                    }
+
                     this.setState({
                         value: val
                     }, () => {

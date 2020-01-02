@@ -507,6 +507,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }, {
 	        key: '_format',
 	        value: function _format(n) {
+	            if (access(this.props, "allowString", NumericInput.defaultProps.allowString, this)) {
+	                return n;
+	            }
+
 	            var _n = this._toNumber(n);
 	            var precision = access(this.props, "precision", null, this);
 	            if (precision !== null) {
@@ -753,7 +757,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	                onValid = _props.onValid,
 	                strict = _props.strict,
 	                noStyle = _props.noStyle,
-	                rest = _objectWithoutProperties(_props, ['step', 'min', 'max', 'precision', 'parse', 'format', 'mobile', 'snap', 'componentClass', 'value', 'type', 'style', 'defaultValue', 'onInvalid', 'onValid', 'strict', 'noStyle']);
+	                allowString = _props.allowString,
+	                rest = _objectWithoutProperties(_props, ['step', 'min', 'max', 'precision', 'parse', 'format', 'mobile', 'snap', 'componentClass', 'value', 'type', 'style', 'defaultValue', 'onInvalid', 'onValid', 'strict', 'noStyle', 'allowString']);
 
 	            noStyle = noStyle || style === false;
 
@@ -833,6 +838,8 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	            // Not a number and not empty (loose mode only)
 	            else if (loose && stringValue && !RE_NUMBER.test(stringValue)) {
+	                    attrs.input.value = stringValue;
+	                } else if (allowString) {
 	                    attrs.input.value = stringValue;
 	                }
 
@@ -945,6 +952,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	                _extends(attrs.input, {
 	                    onChange: function onChange(e) {
 	                        var original = e.target.value;
+
+	                        var allowString = access(_this6.props, "allowString", NumericInput.defaultProps.allowString, _this6);
+	                        if (allowString) {
+	                            _this6.setState({
+	                                value: original,
+	                                stringValue: original
+	                            });
+	                            return;
+	                        }
+
 	                        var val = _this6._parse(original);
 	                        if (isNaN(val)) {
 	                            val = null;
@@ -978,7 +995,14 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	                        args[0].persist();
 	                        _this6._inputFocus = true;
-	                        var val = _this6._parse(args[0].target.value);
+
+	                        var val = args[0].target.value;
+
+	                        var allowString = access(_this6.props, "allowString", NumericInput.defaultProps.allowString, _this6);
+	                        if (!allowString) {
+	                            val = _this6._parse(args[0].target.value);
+	                        }
+
 	                        _this6.setState({
 	                            value: val,
 	                            stringValue: val || val === 0 ? val + "" : ""
@@ -995,7 +1019,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	                        _this6._isStrict = true;
 	                        args[0].persist();
 	                        _this6._inputFocus = false;
-	                        var val = _this6._parse(args[0].target.value);
+
+	                        var val = args[0].target.value;
+
+	                        var allowString = access(_this6.props, "allowString", NumericInput.defaultProps.allowString, _this6);
+	                        if (!allowString) {
+	                            val = _this6._parse(args[0].target.value);
+	                        }
+
 	                        _this6.setState({
 	                            value: val
 	                        }, function () {
@@ -1082,7 +1113,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	    value: _propTypes2.default.oneOfType([_propTypes2.default.number, _propTypes2.default.string]),
 	    defaultValue: _propTypes2.default.oneOfType([_propTypes2.default.number, _propTypes2.default.string]),
 	    strict: _propTypes2.default.bool,
-	    componentClass: _propTypes2.default.string,
+	    allowString: _propTypes2.default.bool,
+	    componentClass: _propTypes2.default.oneOfType([_propTypes2.default.func, _propTypes2.default.string]),
 	    mobile: function mobile(props, propName) {
 	        var prop = props[propName];
 	        if (prop !== true && prop !== false && prop !== 'auto' && typeof prop != 'function') {
@@ -1099,6 +1131,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    format: null,
 	    mobile: 'auto',
 	    strict: false,
+	    allowString: false,
 	    componentClass: "input",
 	    style: {}
 	};
