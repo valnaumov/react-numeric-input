@@ -379,23 +379,31 @@ class NumericInput extends Component
         let out:NumericInputState = {};
 
         if (props.hasOwnProperty("value")) {
+            let allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this)
+            if (allowString && typeof props.value === 'string') {
+                return {
+                    value: props.value,
+                    stringValue: String(props.value)
+                }
+            }
+
             out.stringValue = String(
                 props.value || props.value === 0 ? props.value : ''
             ).trim();
 
             out.value = out.stringValue !== '' ?
                 this._parse(props.value) :
-                null
+                null;
         }
 
         else if (!this._isMounted && props.hasOwnProperty("defaultValue")) {
             out.stringValue = String(
                 props.defaultValue || props.defaultValue === 0 ? props.defaultValue : ''
-            ).trim()
+            ).trim();
 
             out.value = props.defaultValue !== '' ?
                 this._parse(props.defaultValue) :
-                null
+                null;
         }
 
         return out;
@@ -437,13 +445,16 @@ class NumericInput extends Component
      */
     componentDidUpdate(prevProps: Object, prevState: Object): void
     {
+        let allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this)
+
         // Call the onChange if needed. This is placed here because there are
         // many reasons for changing the value and this is the common place
         // that can capture them all
         if (!this._ignoreValueChange // no onChange if re-rendered with different value prop
             && prevState.value !== this.state.value // no onChange if the value remains the same
-            && (!isNaN(this.state.value) || this.state.value === null) // only if changing to number or null
+            && (!isNaN(this.state.value) || this.state.value === null || allowString) // only if changing to number or null
         ) {
+            console.log('componentDidUpdate. this.state.value: ' + this.state.value)
             this._invokeEventCallback("onChange", this.state.value, this.refsInput.value, this.refsInput)
         }
 
@@ -484,8 +495,12 @@ class NumericInput extends Component
         this.refsInput.getValueAsNumber = () => this.state.value || 0
 
         this.refsInput.setValue = (value) => {
+            let allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this);
+
+            console.log('this.refsInput.setValue: ' + value)
+
             this.setState({
-                value: this._parse(value),
+                value: allowString ? value : this._parse(value),
                 stringValue: value
             })
         }
@@ -693,6 +708,7 @@ class NumericInput extends Component
         this._isStrict = _isStrict;
 
         if (_n !== this.state.value) {
+            console.log('step. value: ' + _n)
             this.setState({ value: _n, stringValue: _n + "" }, callback);
             return true;
         }
@@ -976,10 +992,12 @@ class NumericInput extends Component
 
         else if (allowString) {
             attrs.input.value = stringValue;
+            console.log('render as per allowString')
         }
 
         // number
         else if (state.value || state.value === 0) {
+            console.log('render as number, allowString: ' + allowString)
             attrs.input.value = this._format(state.value);
         }
 
@@ -1083,6 +1101,7 @@ class NumericInput extends Component
 
                     let allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this);
                     if (allowString) {
+                        console.log('onChange value: ' + original)
                         this.setState({
                             value: original,
                             stringValue: original
@@ -1094,6 +1113,7 @@ class NumericInput extends Component
                     if (isNaN(val)) {
                         val = null
                     }
+                    console.log('onChange, but allowString is: ' + allowString + ' value: ' + (this._isStrict ? this._toNumber(val) : val))
                     this.setState({
                         value: this._isStrict ? this._toNumber(val) : val,
                         stringValue: original
@@ -1118,6 +1138,7 @@ class NumericInput extends Component
                     if (!allowString) {
                         val = this._parse(args[0].target.value)
                     }
+                    console.log('setting onFocus: ' + val)
 
                     this.setState({
                         value: val,
@@ -1138,6 +1159,7 @@ class NumericInput extends Component
                     if (!allowString) {
                         val = this._parse(args[0].target.value)
                     }
+                    console.log('setting onBlur: ' + val)
 
                     this.setState({
                         value: val

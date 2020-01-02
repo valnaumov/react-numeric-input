@@ -240,6 +240,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	            var out = {};
 
 	            if (props.hasOwnProperty("value")) {
+	                var _allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this);
+	                if (_allowString && typeof props.value === 'string') {
+	                    return {
+	                        value: props.value,
+	                        stringValue: String(props.value)
+	                    };
+	                }
+
 	                out.stringValue = String(props.value || props.value === 0 ? props.value : '').trim();
 
 	                out.value = out.stringValue !== '' ? this._parse(props.value) : null;
@@ -296,13 +304,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }, {
 	        key: 'componentDidUpdate',
 	        value: function componentDidUpdate(prevProps, prevState) {
+	            var allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this);
+
 	            // Call the onChange if needed. This is placed here because there are
 	            // many reasons for changing the value and this is the common place
 	            // that can capture them all
 	            if (!this._ignoreValueChange // no onChange if re-rendered with different value prop
 	            && prevState.value !== this.state.value // no onChange if the value remains the same
-	            && (!isNaN(this.state.value) || this.state.value === null) // only if changing to number or null
+	            && (!isNaN(this.state.value) || this.state.value === null || allowString) // only if changing to number or null
 	            ) {
+	                    console.log('componentDidUpdate. this.state.value: ' + this.state.value);
 	                    this._invokeEventCallback("onChange", this.state.value, this.refsInput.value, this.refsInput);
 	                }
 
@@ -351,8 +362,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	            };
 
 	            this.refsInput.setValue = function (value) {
+	                var allowString = access(_this3.props, "allowString", NumericInput.defaultProps.allowString, _this3);
+
+	                console.log('this.refsInput.setValue: ' + value);
+
 	                _this3.setState({
-	                    value: _this3._parse(value),
+	                    value: allowString ? value : _this3._parse(value),
 	                    stringValue: value
 	                });
 	            };
@@ -548,6 +563,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            this._isStrict = _isStrict;
 
 	            if (_n !== this.state.value) {
+	                console.log('step. value: ' + _n);
 	                this.setState({ value: _n, stringValue: _n + "" }, callback);
 	                return true;
 	            }
@@ -841,10 +857,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    attrs.input.value = stringValue;
 	                } else if (allowString) {
 	                    attrs.input.value = stringValue;
+	                    console.log('render as per allowString');
 	                }
 
 	                // number
 	                else if (state.value || state.value === 0) {
+	                        console.log('render as number, allowString: ' + allowString);
 	                        attrs.input.value = this._format(state.value);
 	                    }
 
@@ -955,6 +973,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	                        var allowString = access(_this6.props, "allowString", NumericInput.defaultProps.allowString, _this6);
 	                        if (allowString) {
+	                            console.log('onChange value: ' + original);
 	                            _this6.setState({
 	                                value: original,
 	                                stringValue: original
@@ -966,6 +985,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                        if (isNaN(val)) {
 	                            val = null;
 	                        }
+	                        console.log('onChange, but allowString is: ' + allowString + ' value: ' + (_this6._isStrict ? _this6._toNumber(val) : val));
 	                        _this6.setState({
 	                            value: _this6._isStrict ? _this6._toNumber(val) : val,
 	                            stringValue: original
@@ -1002,6 +1022,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                        if (!allowString) {
 	                            val = _this6._parse(args[0].target.value);
 	                        }
+	                        console.log('setting onFocus: ' + val);
 
 	                        _this6.setState({
 	                            value: val,
@@ -1026,6 +1047,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                        if (!allowString) {
 	                            val = _this6._parse(args[0].target.value);
 	                        }
+	                        console.log('setting onBlur: ' + val);
 
 	                        _this6.setState({
 	                            value: val
