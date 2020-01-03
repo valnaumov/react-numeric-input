@@ -141,23 +141,27 @@ module.exports =
 	        value: function _propsToState(props) {
 	            var out = {};
 
+	            var parsedValue = void 0;
 	            if (props.hasOwnProperty("value")) {
-	                var _allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this);
-	                if (_allowString && typeof props.value === 'string') {
-	                    return {
-	                        value: props.value,
-	                        stringValue: String(props.value)
-	                    };
-	                }
-
-	                out.stringValue = String(props.value || props.value === 0 ? props.value : '').trim();
-
-	                out.value = out.stringValue !== '' ? this._parse(props.value) : null;
+	                parsedValue = this._tryParse(props.value);
 	            } else if (!this._isMounted && props.hasOwnProperty("defaultValue")) {
-	                out.stringValue = String(props.defaultValue || props.defaultValue === 0 ? props.defaultValue : '').trim();
-
-	                out.value = props.defaultValue !== '' ? this._parse(props.defaultValue) : null;
+	                parsedValue = this._tryParse(props.defaultValue);
 	            }
+
+	            if (typeof parsedValue === 'string') {
+	                out.value = parsedValue;
+	                out.stringValue = parsedValue;
+	                return out;
+	            }
+
+	            if (isNaN(parsedValue)) {
+	                out.value = parsedValue;
+	                out.stringValue = '';
+	                return out;
+	            }
+
+	            out.value = parsedValue;
+	            out.stringValue = String(parsedValue);
 
 	            return out;
 	        }
@@ -186,7 +190,6 @@ module.exports =
 	            var allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this);
 
 	            if (!this._ignoreValueChange && prevState.value !== this.state.value && (!isNaN(this.state.value) || this.state.value === null || allowString)) {
-	                    console.log('componentDidUpdate. this.state.value: ' + this.state.value);
 	                    this._invokeEventCallback("onChange", this.state.value, this.refsInput.value, this.refsInput);
 	                }
 
@@ -221,12 +224,8 @@ module.exports =
 	            };
 
 	            this.refsInput.setValue = function (value) {
-	                var allowString = access(_this3.props, "allowString", NumericInput.defaultProps.allowString, _this3);
-
-	                console.log('this.refsInput.setValue: ' + value);
-
 	                _this3.setState({
-	                    value: allowString ? value : _this3._parse(value),
+	                    value: _this3._tryParse(value),
 	                    stringValue: value
 	                });
 	            };
@@ -321,13 +320,28 @@ module.exports =
 	            return n;
 	        }
 	    }, {
+	        key: '_tryParse',
+	        value: function _tryParse(x) {
+	            var parsed = this._parse(x);
+
+	            var allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this);
+	            if (isNaN(parsed) && allowString) {
+	                return x;
+	            }
+
+	            return parsed;
+	        }
+	    }, {
 	        key: '_parse',
 	        value: function _parse(x) {
 	            x = String(x);
 	            if (typeof this.props.parse == 'function') {
-	                return parseFloat(this.props.parse(x));
+	                var parsed = this.props.parse(x);
+
+	                return isNaN(parsed) ? NaN : parseFloat(parsed);
 	            }
-	            return parseFloat(x);
+
+	            return isNaN(x) ? NaN : parseFloat(x);
 	        }
 	    }, {
 	        key: '_format',
@@ -367,7 +381,6 @@ module.exports =
 	            this._isStrict = _isStrict;
 
 	            if (_n !== this.state.value) {
-	                console.log('step. value: ' + _n);
 	                this.setState({ value: _n, stringValue: _n + "" }, callback);
 	                return true;
 	            }
@@ -587,9 +600,7 @@ module.exports =
 	                    attrs.input.value = stringValue;
 	                } else if (allowString) {
 	                    attrs.input.value = stringValue;
-	                    console.log('render as per allowString');
 	                } else if (state.value || state.value === 0) {
-	                        console.log('render as number, allowString: ' + allowString);
 	                        attrs.input.value = this._format(state.value);
 	                    } else {
 	                            attrs.input.value = "";
@@ -693,21 +704,7 @@ module.exports =
 	                    onChange: function onChange(e) {
 	                        var original = e.target.value;
 
-	                        var allowString = access(_this6.props, "allowString", NumericInput.defaultProps.allowString, _this6);
-	                        if (allowString) {
-	                            console.log('onChange value: ' + original);
-	                            _this6.setState({
-	                                value: original,
-	                                stringValue: original
-	                            });
-	                            return;
-	                        }
-
-	                        var val = _this6._parse(original);
-	                        if (isNaN(val)) {
-	                            val = null;
-	                        }
-	                        console.log('onChange, but allowString is: ' + allowString + ' value: ' + (_this6._isStrict ? _this6._toNumber(val) : val));
+	                        var val = _this6._tryParse(original);
 	                        _this6.setState({
 	                            value: _this6._isStrict ? _this6._toNumber(val) : val,
 	                            stringValue: original
@@ -738,13 +735,7 @@ module.exports =
 	                        args[0].persist();
 	                        _this6._inputFocus = true;
 
-	                        var val = args[0].target.value;
-
-	                        var allowString = access(_this6.props, "allowString", NumericInput.defaultProps.allowString, _this6);
-	                        if (!allowString) {
-	                            val = _this6._parse(args[0].target.value);
-	                        }
-	                        console.log('setting onFocus: ' + val);
+	                        var val = _this6._tryParse(args[0].target.value);
 
 	                        _this6.setState({
 	                            value: val,
@@ -763,13 +754,7 @@ module.exports =
 	                        args[0].persist();
 	                        _this6._inputFocus = false;
 
-	                        var val = args[0].target.value;
-
-	                        var allowString = access(_this6.props, "allowString", NumericInput.defaultProps.allowString, _this6);
-	                        if (!allowString) {
-	                            val = _this6._parse(args[0].target.value);
-	                        }
-	                        console.log('setting onBlur: ' + val);
+	                        var val = _this6._tryParse(args[0].target.value);
 
 	                        _this6.setState({
 	                            value: val

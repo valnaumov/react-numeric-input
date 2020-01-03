@@ -378,33 +378,28 @@ class NumericInput extends Component
     _propsToState(props: Object) {
         let out:NumericInputState = {};
 
+        let parsedValue;
         if (props.hasOwnProperty("value")) {
-            let allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this)
-            if (allowString && typeof props.value === 'string') {
-                return {
-                    value: props.value,
-                    stringValue: String(props.value)
-                }
-            }
-
-            out.stringValue = String(
-                props.value || props.value === 0 ? props.value : ''
-            ).trim();
-
-            out.value = out.stringValue !== '' ?
-                this._parse(props.value) :
-                null;
+            parsedValue = this._tryParse(props.value);
         }
-
         else if (!this._isMounted && props.hasOwnProperty("defaultValue")) {
-            out.stringValue = String(
-                props.defaultValue || props.defaultValue === 0 ? props.defaultValue : ''
-            ).trim();
-
-            out.value = props.defaultValue !== '' ?
-                this._parse(props.defaultValue) :
-                null;
+            parsedValue = this._tryParse(props.defaultValue);
         }
+
+        if (typeof parsedValue === 'string') {
+            out.value = parsedValue;
+            out.stringValue = parsedValue;
+            return out;
+        }
+
+        if (isNaN(parsedValue)) {
+            out.value = parsedValue;
+            out.stringValue = '';
+            return out;
+        }
+
+        out.value = parsedValue;
+        out.stringValue = String(parsedValue);
 
         return out;
     }
@@ -454,7 +449,6 @@ class NumericInput extends Component
             && prevState.value !== this.state.value // no onChange if the value remains the same
             && (!isNaN(this.state.value) || this.state.value === null || allowString) // only if changing to number or null
         ) {
-            console.log('componentDidUpdate. this.state.value: ' + this.state.value)
             this._invokeEventCallback("onChange", this.state.value, this.refsInput.value, this.refsInput)
         }
 
@@ -495,12 +489,8 @@ class NumericInput extends Component
         this.refsInput.getValueAsNumber = () => this.state.value || 0
 
         this.refsInput.setValue = (value) => {
-            let allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this);
-
-            console.log('this.refsInput.setValue: ' + value)
-
             this.setState({
-                value: allowString ? value : this._parse(value),
+                value: this._tryParse(value),
                 stringValue: value
             })
         }
@@ -637,6 +627,18 @@ class NumericInput extends Component
         return n;
     }
 
+    _tryParse(x: string): any
+    {
+        let parsed = this._parse(x)
+
+        let allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this)
+        if (isNaN(parsed) && allowString) {
+            return x
+        }
+
+        return parsed
+    }
+
     /**
      * This is used internally to parse any string into a number. It will
      * delegate to this.props.parse function if one is provided. Otherwise it
@@ -647,9 +649,13 @@ class NumericInput extends Component
     {
         x = String(x);
         if (typeof this.props.parse == 'function') {
-            return parseFloat(this.props.parse(x));
+            let parsed = this.props.parse(x);
+
+            // parseFloat succeeds even if the input has trailing letters
+            return isNaN(parsed) ? NaN : parseFloat(parsed);
         }
-        return parseFloat(x);
+
+        return isNaN(x) ? NaN : parseFloat(x);
     }
 
     /**
@@ -708,7 +714,6 @@ class NumericInput extends Component
         this._isStrict = _isStrict;
 
         if (_n !== this.state.value) {
-            console.log('step. value: ' + _n)
             this.setState({ value: _n, stringValue: _n + "" }, callback);
             return true;
         }
@@ -992,12 +997,10 @@ class NumericInput extends Component
 
         else if (allowString) {
             attrs.input.value = stringValue;
-            console.log('render as per allowString')
         }
 
         // number
         else if (state.value || state.value === 0) {
-            console.log('render as number, allowString: ' + allowString)
             attrs.input.value = this._format(state.value);
         }
 
@@ -1099,21 +1102,7 @@ class NumericInput extends Component
                 onChange : e => {
                     const original = e.target.value;
 
-                    let allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this);
-                    if (allowString) {
-                        console.log('onChange value: ' + original)
-                        this.setState({
-                            value: original,
-                            stringValue: original
-                        });
-                        return;
-                    }
-
-                    let val = this._parse(original);
-                    if (isNaN(val)) {
-                        val = null
-                    }
-                    console.log('onChange, but allowString is: ' + allowString + ' value: ' + (this._isStrict ? this._toNumber(val) : val))
+                    let val = this._tryParse(original);
                     this.setState({
                         value: this._isStrict ? this._toNumber(val) : val,
                         stringValue: original
@@ -1132,13 +1121,7 @@ class NumericInput extends Component
                     args[0].persist();
                     this._inputFocus = true;
 
-                    let val = args[0].target.value;
-
-                    let allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this);
-                    if (!allowString) {
-                        val = this._parse(args[0].target.value)
-                    }
-                    console.log('setting onFocus: ' + val)
+                    let val = this._tryParse(args[0].target.value)
 
                     this.setState({
                         value: val,
@@ -1153,13 +1136,7 @@ class NumericInput extends Component
                     args[0].persist();
                     this._inputFocus = false;
 
-                    let val = args[0].target.value;
-
-                    let allowString = access(this.props, "allowString", NumericInput.defaultProps.allowString, this);
-                    if (!allowString) {
-                        val = this._parse(args[0].target.value)
-                    }
-                    console.log('setting onBlur: ' + val)
+                    let val = this._tryParse(args[0].target.value)
 
                     this.setState({
                         value: val
